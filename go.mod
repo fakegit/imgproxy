@@ -19,7 +19,7 @@ require (
 	github.com/newrelic/go-agent/v3 v3.15.2
 	github.com/prometheus/client_golang v1.12.1
 	github.com/sirupsen/logrus v1.8.1
-	github.com/stretchr/testify v1.7.1
+	github.com/stretchr/testify v1.7.2
 	go.uber.org/automaxprocs v1.4.0
 	golang.org/x/image v0.0.0-20220321031419-a8550c1d254a
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f
