@@ -16,7 +16,7 @@ require (
 	github.com/honeybadger-io/honeybadger-go v0.5.0
 	github.com/ianlancetaylor/cgosymbolizer v0.0.0-20220217162856-c813f11194b9 // indirect
 	github.com/matoous/go-nanoid/v2 v2.0.0
-	github.com/newrelic/go-agent/v3 v3.15.2
+	github.com/newrelic/go-agent/v3 v3.17.0
 	github.com/prometheus/client_golang v1.12.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.7.1
