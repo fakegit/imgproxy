@@ -3,7 +3,7 @@ module github.com/imgproxy/imgproxy/v3
 go 1.16
 
 require (
-	cloud.google.com/go/storage v1.21.0
+	cloud.google.com/go/storage v1.22.1
 	github.com/Azure/azure-storage-blob-go v0.14.0
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/StackExchange/wmi v1.2.1 // indirect
@@ -22,10 +22,10 @@ require (
 	github.com/stretchr/testify v1.7.1
 	go.uber.org/automaxprocs v1.4.0
 	golang.org/x/image v0.0.0-20220321031419-a8550c1d254a
-	golang.org/x/net v0.0.0-20220225172249-27dd8689420f
-	golang.org/x/sys v0.0.0-20220319134239-a9b59b0215f8
+	golang.org/x/net v0.0.0-20220624214902-1bab6f366d9e
+	golang.org/x/sys v0.0.0-20220624220833-87e55d714810
 	golang.org/x/text v0.3.7
-	google.golang.org/api v0.73.0
+	google.golang.org/api v0.94.0
 	gopkg.in/DataDog/dd-trace-go.v1 v1.37.0
 )
 
