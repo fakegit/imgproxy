@@ -7,24 +7,23 @@ require (
 	github.com/Azure/azure-storage-blob-go v0.14.0
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/StackExchange/wmi v1.2.1 // indirect
-	github.com/airbrake/gobrake/v5 v5.3.0
+	github.com/airbrake/gobrake/v5 v5.6.1
 	github.com/aws/aws-sdk-go v1.43.21
 	github.com/benesch/cgosymbolizer v0.0.0-20190515212042-bec6fe6e597b
 	github.com/bugsnag/bugsnag-go/v2 v2.1.2
 	github.com/getsentry/sentry-go v0.13.0
-	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/honeybadger-io/honeybadger-go v0.5.0
 	github.com/ianlancetaylor/cgosymbolizer v0.0.0-20220217162856-c813f11194b9 // indirect
 	github.com/matoous/go-nanoid/v2 v2.0.0
 	github.com/newrelic/go-agent/v3 v3.15.2
-	github.com/prometheus/client_golang v1.12.1
-	github.com/sirupsen/logrus v1.8.1
-	github.com/stretchr/testify v1.7.1
+	github.com/prometheus/client_golang v1.14.0
+	github.com/sirupsen/logrus v1.9.0
+	github.com/stretchr/testify v1.8.0
 	go.uber.org/automaxprocs v1.4.0
 	golang.org/x/image v0.0.0-20220321031419-a8550c1d254a
-	golang.org/x/net v0.0.0-20220225172249-27dd8689420f
-	golang.org/x/sys v0.0.0-20220319134239-a9b59b0215f8
-	golang.org/x/text v0.3.7
+	golang.org/x/net v0.4.0
+	golang.org/x/sys v0.3.0
+	golang.org/x/text v0.5.0
 	google.golang.org/api v0.73.0
 	gopkg.in/DataDog/dd-trace-go.v1 v1.37.0
 )
