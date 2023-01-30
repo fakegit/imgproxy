@@ -8,7 +8,7 @@ require (
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/StackExchange/wmi v1.2.1 // indirect
 	github.com/airbrake/gobrake/v5 v5.3.0
-	github.com/aws/aws-sdk-go v1.43.21
+	github.com/aws/aws-sdk-go v1.44.189
 	github.com/benesch/cgosymbolizer v0.0.0-20190515212042-bec6fe6e597b
 	github.com/bugsnag/bugsnag-go/v2 v2.1.2
 	github.com/getsentry/sentry-go v0.13.0
@@ -22,9 +22,9 @@ require (
 	github.com/stretchr/testify v1.7.1
 	go.uber.org/automaxprocs v1.4.0
 	golang.org/x/image v0.0.0-20220321031419-a8550c1d254a
-	golang.org/x/net v0.0.0-20220225172249-27dd8689420f
-	golang.org/x/sys v0.0.0-20220319134239-a9b59b0215f8
-	golang.org/x/text v0.3.7
+	golang.org/x/net v0.1.0
+	golang.org/x/sys v0.1.0
+	golang.org/x/text v0.4.0
 	google.golang.org/api v0.73.0
 	gopkg.in/DataDog/dd-trace-go.v1 v1.37.0
 )
