@@ -19,14 +19,14 @@ require (
 	github.com/newrelic/go-agent/v3 v3.15.2
 	github.com/prometheus/client_golang v1.12.1
 	github.com/sirupsen/logrus v1.8.1
-	github.com/stretchr/testify v1.7.1
+	github.com/stretchr/testify v1.8.1
 	go.uber.org/automaxprocs v1.4.0
 	golang.org/x/image v0.0.0-20220321031419-a8550c1d254a
-	golang.org/x/net v0.0.0-20220225172249-27dd8689420f
-	golang.org/x/sys v0.0.0-20220319134239-a9b59b0215f8
-	golang.org/x/text v0.3.7
+	golang.org/x/net v0.3.0
+	golang.org/x/sys v0.3.0
+	golang.org/x/text v0.5.0
 	google.golang.org/api v0.73.0
-	gopkg.in/DataDog/dd-trace-go.v1 v1.37.0
+	gopkg.in/DataDog/dd-trace-go.v1 v1.47.0
 )
 
 replace git.apache.org/thrift.git => github.com/apache/thrift v0.0.0-20180902110319-2566ecd5d999
