@@ -1,9 +1,17 @@
 pre-commit:
-  scripts:
-    lint:
+  commands:
+    lint-go:
       tags: lint
+      run: ./run lint-go
+    lint-clang:
+      tags: lint
+      run: ./run lint-clang
 
 pre-push:
-  scripts:
+  commands:
     test:
       tags: test
+      run: ./run test
+    lychee:
+      tags: test
+      run: ./run lychee

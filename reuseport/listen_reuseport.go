@@ -1,6 +1,4 @@
 //go:build (linux || darwin) && go1.11
-// +build linux darwin
-// +build go1.11
 
 package reuseport
 
@@ -10,12 +8,10 @@ import (
 	"syscall"
 
 	"golang.org/x/sys/unix"
-
-	"github.com/imgproxy/imgproxy/v3/config"
 )
 
-func Listen(network, address string) (net.Listener, error) {
-	if !config.SoReuseport {
+func Listen(network, address string, reuse bool) (net.Listener, error) {
+	if !reuse {
 		return net.Listen(network, address)
 	}
 

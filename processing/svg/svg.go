@@ -1,0 +1,150 @@
+package svg
+
+import (
+	"bytes"
+	"errors"
+	"sync"
+
+	"github.com/imgproxy/imgproxy/v4/imagedata"
+	"github.com/imgproxy/imgproxy/v4/imagetype"
+	"github.com/imgproxy/imgproxy/v4/options"
+	"github.com/imgproxy/imgproxy/v4/xmlparser"
+)
+
+const href = "href"
+
+// pool represents temorary pool for svg sanitized data
+var pool = sync.Pool{
+	New: func() any {
+		return bytes.NewBuffer(nil)
+	},
+}
+
+// Processor provides SVG processing capabilities
+type Processor struct {
+	config *Config
+}
+
+// New creates a new SVG processor instance
+func New(config *Config) *Processor {
+	return &Processor{
+		config: config,
+	}
+}
+
+// Process processes the given image data.
+// It always returns a value that the caller owns independently (either a new
+// ImageData or a Ref() of the original), so the caller can Close() it without
+// worrying about whether it is the same object as the input.
+func (p *Processor) Process(o *options.Options, data imagedata.ImageData) (imagedata.ImageData, error) {
+	if data.Format() != imagetype.SVG {
+		return data.Ref(), nil
+	}
+
+	processed, err := p.sanitize(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return processed, nil
+}
+
+// sanitize sanitizes the SVG data.
+// It strips <script> and unsafe attributes (on* events).
+// When no transformation is needed, it returns a Ref() of the input so the
+// caller always gets independent ownership.
+func (p *Processor) sanitize(data imagedata.ImageData) (imagedata.ImageData, error) {
+	if !p.config.Sanitize {
+		return data.Ref(), nil
+	}
+
+	doc, err := xmlparser.NewDocument(data.Reader())
+	if err != nil {
+		return nil, newSanitizeError(err)
+	}
+
+	// Sanitize the document's children
+	doc.FilterChildNodes(p.sanitizeElement)
+
+	buf, ok := pool.Get().(*bytes.Buffer)
+	if !ok {
+		return nil, newSanitizeError(errors.New("svg.Sanitize: failed to get buffer from pool"))
+	}
+	buf.Reset()
+
+	cancel := func() {
+		pool.Put(buf)
+	}
+
+	// Write the sanitized document to the buffer
+	if err := doc.WriteTo(buf); err != nil {
+		cancel()
+		return nil, newSanitizeError(err)
+	}
+
+	// Create new ImageData from the sanitized buffer
+	newData := imagedata.NewFromBytesWithFormat(
+		imagetype.SVG,
+		buf.Bytes(),
+	)
+	newData.AddCancel(cancel)
+
+	return newData, nil
+}
+
+// sanitizeElement sanitizes a single SVG element.
+// It returns true if the element should be kept, false if it should be removed.
+func (p *Processor) sanitizeElement(el *xmlparser.Node) bool {
+	if el == nil {
+		return false
+	}
+
+	tagName := el.Name.Local()
+
+	// Strip <script>, <iframe>, and <form> tags
+	if tagName == "script" || tagName == "iframe" || tagName == "form" {
+		return false
+	}
+
+	// Filter out unsafe attributes (such as on* events)
+	el.Attrs.Filter(func(attr *xmlparser.Attribute) bool {
+		_, unsafe := unsafeAttrs[attr.Name.Local()]
+		return !unsafe
+	})
+
+	switch tagName {
+	case "use":
+		// <use> can import external/data content by reference; only allow
+		// same-document fragment references (e.g. href="#id").
+		el.Attrs.Filter(func(attr *xmlparser.Attribute) bool {
+			if attr.Name.Local() != href {
+				return true
+			}
+			return len(attr.Value) == 0 || attr.Value[0] == '#'
+		})
+	case "image":
+		// <image> commonly embeds raster/vector data via data: URIs; allow
+		// that in addition to http(s) and same-document/relative references.
+		el.Attrs.Filter(func(attr *xmlparser.Attribute) bool {
+			if attr.Name.Local() != href {
+				return true
+			}
+			return isSafeHref(attr.Value, imageHrefSchemes)
+		})
+	default:
+		// Any other element (e.g. <a>) may only reference http(s), the
+		// current document (fragment), or a relative resource.
+		el.Attrs.Filter(func(attr *xmlparser.Attribute) bool {
+			if attr.Name.Local() != href {
+				return true
+			}
+			return isSafeHref(attr.Value, hrefSchemes)
+		})
+	}
+
+	// Recurse into children
+	el.FilterChildNodes(p.sanitizeElement)
+
+	// Keep this element
+	return true
+}

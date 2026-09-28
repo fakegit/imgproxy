@@ -1,13 +1,11 @@
 package processing
 
 import (
-	"github.com/imgproxy/imgproxy/v3/imagedata"
-	"github.com/imgproxy/imgproxy/v3/imath"
-	"github.com/imgproxy/imgproxy/v3/options"
-	"github.com/imgproxy/imgproxy/v3/vips"
+	"github.com/imgproxy/imgproxy/v4/imath"
+	"github.com/imgproxy/imgproxy/v4/vips"
 )
 
-func cropImage(img *vips.Image, cropWidth, cropHeight int, gravity *options.GravityOptions) error {
+func cropImage(img *vips.Image, cropWidth, cropHeight int, gravity *GravityOptions, offsetScale float64) error {
 	if cropWidth == 0 && cropHeight == 0 {
 		return nil
 	}
@@ -21,51 +19,48 @@ func cropImage(img *vips.Image, cropWidth, cropHeight int, gravity *options.Grav
 		return nil
 	}
 
-	if gravity.Type == options.GravitySmart {
+	if gravity.Type == GravitySmart {
 		if err := img.CopyMemory(); err != nil {
 			return err
 		}
-		if err := img.SmartCrop(cropWidth, cropHeight); err != nil {
-			return err
-		}
-		// Applying additional modifications after smart crop causes SIGSEGV on Alpine
-		// so we have to copy memory after it
-		return img.CopyMemory()
+		return img.SmartCrop(cropWidth, cropHeight)
 	}
 
-	left, top := calcPosition(imgWidth, imgHeight, cropWidth, cropHeight, gravity, false)
+	left, top := calcPosition(imgWidth, imgHeight, cropWidth, cropHeight, gravity, offsetScale, false)
 	return img.Crop(left, top, cropWidth, cropHeight)
 }
 
-func crop(pctx *pipelineContext, img *vips.Image, po *options.ProcessingOptions, imgdata *imagedata.ImageData) error {
-	width, height := pctx.cropWidth, pctx.cropHeight
+func (p *Processor) crop(c *Context) error {
+	width, height := c.CropWidth, c.CropHeight
+	rotateAngle := c.PO.Rotate()
+	flipX := c.PO.FlipHorizontal()
+	flipY := c.PO.FlipVertical()
 
-	opts := pctx.cropGravity
-	opts.RotateAndFlip(pctx.angle, pctx.flip)
-	opts.RotateAndFlip(po.Rotate, false)
+	// Since we crop before rotating and flipping,
+	// we need to adjust gravity options accordingly.
+	// After rotation and flipping, we'll get the same result
+	// as if we cropped with the original gravity options after
+	// rotation and flipping.
+	//
+	// During rotation/flipping, we first apply the EXIF orientation,
+	// then the user-specified operations.
+	// So here we apply the adjustments in the reverse order.
+	opts := c.CropGravity
+	opts.RotateAndFlip(rotateAngle, flipX, flipY)
+	opts.RotateAndFlip(c.Angle, c.Flip, false)
 
-	if (pctx.angle+po.Rotate)%180 == 90 {
+	// If the final image is rotated by 90 or 270 degrees,
+	// we need to swap width and height for cropping.
+	// After rotation, we'll get the originally intended dimensions.
+	if (c.Angle+rotateAngle)%180 == 90 {
 		width, height = height, width
 	}
 
-	return cropImage(img, width, height, &opts)
+	// Since we crop before scaling, we shouldn't consider DPR
+	return cropImage(c.Img, width, height, &opts, 1.0)
 }
 
-func cropToResult(pctx *pipelineContext, img *vips.Image, po *options.ProcessingOptions, imgdata *imagedata.ImageData) error {
-	// Crop image to the result size
-	resultWidth, resultHeight := resultSize(po)
-
-	if po.ResizingType == options.ResizeFillDown {
-		if resultWidth > img.Width() {
-			resultHeight = imath.Scale(resultHeight, float64(img.Width())/float64(resultWidth))
-			resultWidth = img.Width()
-		}
-
-		if resultHeight > img.Height() {
-			resultWidth = imath.Scale(resultWidth, float64(img.Height())/float64(resultHeight))
-			resultHeight = img.Height()
-		}
-	}
-
-	return cropImage(img, resultWidth, resultHeight, &po.Gravity)
+func (p *Processor) cropToResult(c *Context) error {
+	gravity := c.PO.Gravity()
+	return cropImage(c.Img, c.ResultCropWidth, c.ResultCropHeight, &gravity, c.DprScale)
 }

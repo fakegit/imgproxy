@@ -1,24 +1,30 @@
 package processing
 
-import (
-	"github.com/imgproxy/imgproxy/v3/imagedata"
-	"github.com/imgproxy/imgproxy/v3/options"
-	"github.com/imgproxy/imgproxy/v3/vips"
-)
-
-func trim(pctx *pipelineContext, img *vips.Image, po *options.ProcessingOptions, imgdata *imagedata.ImageData) error {
-	if !po.Trim.Enabled {
+func (p *Processor) trim(c *Context) error {
+	if !c.PO.TrimEnabled() {
 		return nil
 	}
 
-	if err := img.Trim(po.Trim.Threshold, po.Trim.Smart, po.Trim.Color, po.Trim.EqualHor, po.Trim.EqualVer); err != nil {
-		return err
-	}
-	if err := copyMemoryAndCheckTimeout(pctx.ctx, img); err != nil {
+	// We need to import color profile before trim
+	if err := p.colorspaceToProcessing(c); err != nil {
 		return err
 	}
 
-	pctx.trimmed = true
+	if err := c.Img.Trim(
+		c.PO.TrimThreshold(),
+		c.PO.TrimSmart(),
+		c.PO.TrimColor(),
+		c.PO.TrimEqualHor(),
+		c.PO.TrimEqualVer(),
+	); err != nil {
+		return err
+	}
+	if err := c.Img.CopyMemory(); err != nil {
+		return err
+	}
+
+	c.ImgData = nil
+	c.CalcParams()
 
 	return nil
 }

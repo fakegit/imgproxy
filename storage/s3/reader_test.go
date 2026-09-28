@@ -1,0 +1,63 @@
+package s3_test
+
+import (
+	"bytes"
+	"net/http"
+	"testing"
+	"time"
+
+	"github.com/imgproxy/imgproxy/v4/storage"
+	"github.com/imgproxy/imgproxy/v4/storage/testsuite"
+	"github.com/imgproxy/imgproxy/v4/testutil"
+	"github.com/stretchr/testify/suite"
+)
+
+type ReaderTestSuite struct {
+	testsuite.ReaderSuite
+
+	s3Storage testutil.LazyObj[*s3StorageWrapper]
+}
+
+func (s *ReaderTestSuite) SetupSuite() {
+	s.ReaderSuite.SetupSuite()
+
+	s.TestContainer = "test-container"
+	s.TestObjectKey = "test-object.txt"
+
+	// Initialize S3 storage
+	s.s3Storage, _ = NewLazySuiteStorage(s.Lazy())
+
+	s.Storage, _ = testutil.NewLazySuiteObj(s,
+		func() (storage.Reader, error) {
+			return s.s3Storage().Storage, nil
+		},
+	)
+}
+
+func (s *ReaderTestSuite) SetupTest() {
+	// Recreate S3 blob for each test using backend directly
+	backend := s.s3Storage().Server().Backend()
+	metadata := map[string]string{
+		"Content-Type":  "application/octet-stream",
+		"Last-Modified": time.Now().Format(http.TimeFormat),
+	}
+	_, err := backend.PutObject(s.TestContainer, s.TestObjectKey, metadata,
+		bytes.NewReader(s.TestData), int64(len(s.TestData)), nil)
+	s.Require().NoError(err)
+}
+
+func (s *ReaderTestSuite) TestGetObjectAccessPoint() {
+	ctx := s.T().Context()
+	reqHeader := make(http.Header)
+
+	response, err := s.Storage().GetObject(ctx, reqHeader, "test-access-point", s.TestObjectKey, "")
+	s.Require().NoError(err)
+	defer response.Body.Close()
+
+	s.Require().Equal(200, response.Status)
+	s.Require().NotNil(response.Body)
+}
+
+func TestReader(t *testing.T) {
+	suite.Run(t, new(ReaderTestSuite))
+}

@@ -5,35 +5,66 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/imgproxy/imgproxy/v3/config"
+	"github.com/imgproxy/imgproxy/v4/errctx"
 )
 
-var (
-	enabled bool
-
-	timeout = 5 * time.Second
+const (
+	// flushTimeout is the maximum time to wait for Sentry to send events
+	flushTimeout = 5 * time.Second
 )
 
-func Init() {
-	if len(config.SentryDSN) > 0 {
-		sentry.Init(sentry.ClientOptions{
-			Dsn:         config.SentryDSN,
-			Release:     config.SentryRelease,
-			Environment: config.SentryEnvironment,
-		})
+// Reporter is a Sentry error reporter
+type Reporter struct {
+	hub *sentry.Hub
+}
 
-		enabled = true
+// New creates and configures a new Sentry reporter
+func New(config *Config) (*Reporter, error) {
+	if err := config.Validate(); err != nil {
+		return nil, err
+	}
+
+	if len(config.DSN) == 0 {
+		return nil, nil
+	}
+
+	client, err := sentry.NewClient(sentry.ClientOptions{
+		Dsn:         config.DSN,
+		Release:     config.Release,
+		Environment: config.Environment,
+		Transport:   config.Transport,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	hub := sentry.NewHub(client, sentry.NewScope())
+
+	return &Reporter{hub: hub}, nil
+}
+
+func (r *Reporter) Report(err errctx.Error, req *http.Request, meta map[string]any) {
+	hub := r.hub.Clone()
+	hub.Scope().SetRequest(req)
+	hub.Scope().SetLevel(sentry.LevelError)
+
+	if meta != nil {
+		hub.Scope().SetContext("Processing context", meta)
+	}
+
+	// imgproxy may wrap errors using errctx.WrappedError to add context, so Sentry
+	// would report the error type as *errctx.WrappedError.
+	//
+	// To avoid this, we create the event manually from the original error
+	// and set the correct error type.
+	if event := hub.Client().EventFromException(err, sentry.LevelError); event != nil {
+		// Sentry reports errors in the reverse order: the last one is the outermost error.
+		// So we need to set the type on the last exception.
+		event.Exception[len(event.Exception)-1].Type = errctx.ErrorType(err)
+		hub.CaptureEvent(event)
 	}
 }
 
-func Report(err error, req *http.Request) {
-	if enabled {
-		hub := sentry.CurrentHub().Clone()
-		hub.Scope().SetRequest(req)
-		hub.Scope().SetLevel(sentry.LevelError)
-		eventID := hub.CaptureException(err)
-		if eventID != nil {
-			hub.Flush(timeout)
-		}
-	}
+func (r *Reporter) Close() {
+	r.hub.Flush(flushTimeout)
 }
